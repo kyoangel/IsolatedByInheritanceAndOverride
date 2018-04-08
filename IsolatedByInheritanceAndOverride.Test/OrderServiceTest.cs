@@ -1,8 +1,6 @@
-﻿using System;
-using System.Text;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NSubstitute;
 using System.Collections.Generic;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace IsolatedByInheritanceAndOverride.Test
 {
@@ -38,8 +36,9 @@ namespace IsolatedByInheritanceAndOverride.Test
         }
 
         #region 其他測試屬性
+
         //
-        // 您可以使用下列其他屬性撰寫您的測試: 
+        // 您可以使用下列其他屬性撰寫您的測試:
         //
         // 執行該類別中第一項測試前，使用 ClassInitialize 執行程式碼
         // [ClassInitialize()]
@@ -49,7 +48,7 @@ namespace IsolatedByInheritanceAndOverride.Test
         // [ClassCleanup()]
         // public static void MyClassCleanup() { }
         //
-        // 在執行每一項測試之前，先使用 TestInitialize 執行程式碼 
+        // 在執行每一項測試之前，先使用 TestInitialize 執行程式碼
         // [TestInitialize()]
         // public void MyTestInitialize() { }
         //
@@ -57,15 +56,52 @@ namespace IsolatedByInheritanceAndOverride.Test
         // [TestCleanup()]
         // public void MyTestCleanup() { }
         //
-        #endregion
+
+        #endregion 其他測試屬性
 
         [TestMethod]
         public void Test_SyncBookOrders_3_Orders_Only_2_book_order()
         {
             // hard to isolate dependency to unit test
 
-            //var target = new OrderService();
-            //target.SyncBookOrders();
+            var target = new FakeOrderService();
+            target.SetOrders(new List<Order>()
+            {
+                new Order() {Type = "Book"},
+                new Order() {Type = "CD"},
+                new Order() {Type = "Book"}
+            });
+            var fakeBookDao = Substitute.For<IBookDao>();
+            target.SetBookDao(fakeBookDao);
+            target.SyncBookOrders();
+
+            fakeBookDao.Received(2).Insert(Arg.Is<Order>(x => x.Type == "Book"));
+        }
+
+        internal class FakeOrderService : OrderService
+        {
+            private IBookDao _dao;
+            private List<Order> _orders;
+
+            internal void SetBookDao(IBookDao dao)
+            {
+                _dao = dao;
+            }
+
+            protected override IBookDao GetBookDao()
+            {
+                return _dao;
+            }
+
+            internal void SetOrders(List<Order> orders)
+            {
+                _orders = orders;
+            }
+
+            protected override List<Order> GetOrders()
+            {
+                return _orders;
+            }
         }
     }
 }
